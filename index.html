@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SteelFury AI Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --main-color: #5c4d7d;
+    --accent-color: #9b7edc;
+    --bg-light: #fefefe;
+    --bg-dark: #1f1b2e;
+    --text-light: #222;
+    --text-dark: #ddd;
+    --user-msg-bg: #d6c5ff;
+    --bot-msg-bg: #ffffff;
+    --input-bg-light: #fff;
+    --input-bg-dark: #2a2943;
+    --shadow-light: rgba(91, 65, 134, 0.3);
+    --shadow-dark: rgba(155, 126, 220, 0.7);
+    --scrollbar-bg: #e3dffd;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-light);
+    color: var(--text-light);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+
+  body.dark {
+    background-color: var(--bg-dark);
+    color: var(--text-dark);
+  }
+
+  header {
+    padding: 1.2rem 1rem;
+    background: linear-gradient(90deg, var(--main-color), var(--accent-color));
+    color: white;
+    font-weight: 700;
+    font-size: 1.7rem;
+    text-align: center;
+    user-select: none;
+    box-shadow: 0 5px 15px var(--shadow-light);
+  }
+
+  body.dark header {
+    box-shadow: 0 5px 20px var(--shadow-dark);
+  }
+
+  #chatBox {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background-color: var(--bot-msg-bg);
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--main-color) transparent;
+  }
+
+  body.dark #chatBox {
+    background-color: #2c2744;
+  }
+
+  #chatBox::-webkit-scrollbar {
+    width: 10px;
+  }
+  #chatBox::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #chatBox::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-bg);
+    border-radius: 20px;
+  }
+  body.dark #chatBox::-webkit-scrollbar-thumb {
+    background-color: var(--accent-color);
+  }
+
+  .message {
+    max-width: 75%;
+    padding: 1rem 1.5rem;
+    border-radius: 35px;
+    line-height: 1.5;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    animation: fadeInUp 0.4s ease forwards;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    user-select: text;
+  }
+
+  .message.user {
+    background-color: var(--user-msg-bg);
+    align-self: flex-end;
+    text-align: right;
+    color: #3e2d7b;
+    font-weight: 600;
+    box-shadow: 0 6px 20px rgba(155, 126, 220, 0.4);
+    letter-spacing: 0.02em;
+  }
+
+  body.dark .message.user {
+    background-color: var(--accent-color);
+    color: #e9dbff;
+    box-shadow: 0 6px 24px var(--shadow-dark);
+  }
+
+  .message.bot {
+    background-color: var(--bot-msg-bg);
+    align-self: flex-start;
+    color: var(--text-light);
+    font-weight: 500;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.07);
+    letter-spacing: 0.01em;
+  }
+
+  body.dark .message.bot {
+    background-color: #3a355b;
+    color: var(--text-dark);
+    box-shadow: 0 3px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  /* نقاط متحركة للكتابة */
+  .typing-dots {
+    display: inline-block;
+    width: 40px;
+    text-align: left;
+    position: relative;
+    height: 18px;
+  }
+
+  .typing-dots span {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin: 0 3px;
+    background-color: var(--main-color);
+    border-radius: 50%;
+    opacity: 0.4;
+    animation: blink 1.4s infinite both;
+  }
+
+  .typing-dots span:nth-child(1) {
+    animation-delay: 0s;
+  }
+  .typing-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+
+  @keyframes blink {
+    0%, 80%, 100% {
+      opacity: 0.4;
+    }
+    40% {
+      opacity: 1;
+    }
+  }
+
+  .input-area {
+    padding: 1.3rem 2rem;
+    background-color: var(--bg-light);
+    display: flex;
+    gap: 14px;
+    border-top: 1px solid #ddd;
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  body.dark .input-area {
+    background-color: #2a2943;
+    border-color: #4c4980;
+    box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.07);
+  }
+
+  input[type="text"] {
+    flex-grow: 1;
+    border-radius: 35px;
+    border: 2px solid #bfb7e6;
+    padding: 0.9rem 1.5rem;
+    font-size: 1.15rem;
+    outline: none;
+    background-color: var(--input-bg-light);
+    color: var(--text-light);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 3px 8px rgba(123, 103, 196, 0.15);
+    font-weight: 500;
+  }
+
+  body.dark input[type="text"] {
+    background-color: var(--input-bg-dark);
+    color: var(--text-dark);
+    border-color: #6b64a8;
+    box-shadow: 0 3px 10px rgba(123, 103, 196, 0.45);
+  }
+
+  input[type="text"]:focus {
+    border-color: var(--main-color);
+    box-shadow: 0 0 16px var(--main-color);
+  }
+
+  button {
+    background: var(--main-color);
+    border: none;
+    color: white;
+    padding: 0 1.5rem;
+    font-weight: 700;
+    font-size: 1.25rem;
+    border-radius: 35px;
+    cursor: pointer;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(123, 103, 196, 0.5);
+    user-select: none;
+  }
+
+  button:hover:not(:disabled) {
+    background: var(--accent-color);
+    box-shadow: 0 8px 26px rgba(155, 126, 220, 0.6);
+  }
+
+  button:disabled {
+    background: #999;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  #suggestions {
+    padding: 1rem 2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    background-color: var(--bg-light);
+    border-bottom: 1px solid #ddd;
+    user-select: none;
+    justify-content: center;
+  }
+
+  body.dark #suggestions {
+    background-color: #2a2943;
+    border-color: #4c4980;
+  }
+
+  #suggestions button {
+    background-color: #dac9ff;
+    color: #5c4d7d;
+    padding: 0.6rem 1.4rem;
+    font-size: 1rem;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(155, 126, 220, 0.35);
+    transition: background-color 0.25s ease, color 0.25s ease, transform 0.15s ease;
+  }
+
+  #suggestions button:hover {
+    background-color: var(--main-color);
+    color: white;
+    box-shadow: 0 6px 20px rgba(123, 103, 196, 0.8);
+    transform: scale(1.07);
+  }
+
+  #status {
+    font-size: 0.9rem;
+    padding: 0 2rem 0.75rem 2rem;
+    color: gray;
+    user-select: none;
+    min-height: 1.4rem;
+    font-style: italic;
+    text-align: center;
+  }
+
+  body.dark #status {
+    color: #bbb;
+  }
+
+  @keyframes fadeInUp {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 600px) {
+    #chatBox {
+      padding: 1rem 1rem;
+    }
+    .input-area {
+      padding: 1rem 1rem;
+      gap: 8px;
+    }
+    button {
+      font-size: 1rem;
+      padding: 0 1rem;
+      border-radius: 25px;
+    }
+    input[type="text"] {
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 25px;
+    }
+    #suggestions button {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+    }
+  }
+</style>
+</head>
+<body>
+  <header>SteelFury AI Assistant</header>
+
+  <div id="chatBox" role="log" aria-live="polite" aria-atomic="false"></div>
+  <div id="status" aria-live="polite" aria-atomic="true"></div>
+
+  <div id="suggestions" aria-label="Suggested questions"></div>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Ask me about cars..." autocomplete="off" aria-label="User input" />
+    <button id="sendBtn" title="Send message" aria-label="Send message">➡️</button>
+    <button id="voiceBtn" title="Speak your question" aria-label="Voice input">🎙️</button>
+    <button id="modeBtn" title="Toggle Dark/Light Mode" aria-label="Toggle Dark/Light Mode">🌓</button>
+    <button id="clearBtn" title="Clear Chat History" aria-label="Clear Chat History">🗑️</button>
+  </div>
+
+<script>
+const RESPONSES = {
+  hi: "SteelFury: Hi there! How can I assist you today?",
+  hello: "SteelFury: Hello! I'm here to help with your car questions.",
+  hey: "SteelFury: Hey! What do you want to know about cars?",
+  greetings: "SteelFury: Greetings! Ask me anything about vehicles.",
+  good_morning: "SteelFury: Good morning! Ready to talk cars?",
+  good_afternoon: "SteelFury: Good afternoon! How can I assist?",
+  good_evening: "SteelFury: Good evening! What car info do you need?",
+  welcome: "SteelFury: Welcome! Feel free to ask any car-related questions.",
+  whats_up: "SteelFury: What's up? Need help with a car topic?",
+  howdy: "SteelFury: Howdy! What car advice do you need today?",
+  sup: "SteelFury: Sup! Ask me anything about vehicles.",
+  hey_there: "SteelFury: Hey there! How can I help you with cars?",
+  nice_to_meet_you: "SteelFury: Nice to meet you! Ask me anything about cars.",
+  welcome_back: "SteelFury: Welcome back! What car info do you need?",
+  how_are_you: "SteelFury: How are you? Ready to discuss cars?",
+  good_day: "SteelFury: Good day! How can I assist you with your vehicle?",
+  hello_there: "SteelFury: Hello there! Need car advice or info?",
+  greetings_friend: "SteelFury: Greetings, friend! Ask me about cars anytime.",
+  pleased_to_meet_you: "SteelFury: Pleased to meet you! What car questions do you have?",
+  morning: "SteelFury: Morning! How can I help with your car today?",
+  afternoon: "SteelFury: Afternoon! What would you like to know about cars?",
+  evening: "SteelFury: Evening! Ask me anything about vehicles.",
+  hey_you: "SteelFury: Hey you! Got a question about cars?",
+  hi_there: "SteelFury: Hi there! Ready to talk cars?",
+  yo: "SteelFury: Yo! Ask me anything about your ride.",
+  whats_new: "SteelFury: What's new? Need some car tips?",
+  how_is_it_going: "SteelFury: How's it going? Ask me about cars!",
+  welcome_friend: "SteelFury: Welcome, friend! How can I help you today?",
+  howdy_doody: "SteelFury: Howdy Doody! What's on your mind about cars?",
+  good_to_see_you: "SteelFury: Good to see you! What car info do you need?",
+  greetings_and_salutations: "SteelFury: Greetings and salutations! Ask away about cars.",
+  top_of_the_morning: "SteelFury: Top of the morning to you! Need car advice?",
+  good_morning_to_you: "SteelFury: Good morning to you! How can I assist?",
+  hey_friend: "SteelFury: Hey friend! Got any car questions?",
+  whats_happening: "SteelFury: What's happening? Need info on vehicles?",
+  greetings_human: "SteelFury: Greetings, human! Ask your car questions here.",
+  how_are_things: "SteelFury: How are things? Ready for some car talk?",
+  salutations: "SteelFury: Salutations! How can I help with cars today?",
+  hey_buddy: "SteelFury: Hey buddy! What do you want to know about cars?",
+  hello_friend: "SteelFury: Hello friend! Ask me anything car-related.",
+  hey_pal: "SteelFury: Hey pal! Need help with your vehicle?",
+  hi_friend: "SteelFury: Hi friend! How can I assist you with cars?",
+  hello_there_friend: "SteelFury: Hello there, friend! What can I do for you?",
+  good_to_have_you_here: "SteelFury: Good to have you here! Ask me about cars.",
+  welcome_here: "SteelFury: Welcome here! Ready to answer your car questions.",
+  greetings_user: "SteelFury: Greetings, user! How may I assist?",
+  how_are_you_today: "SteelFury: How are you today? Need car info?",
+  hope_you_are_well: "SteelFury: Hope you are well! What car questions do you have?",
+  good_evening_to_you: "SteelFury: Good evening to you! Ask me anything car-related.",
+  hiya: "SteelFury: Hiya! Ready to chat about your car.",
+  hello_everyone: "SteelFury: Hello everyone! I'm here to help with cars.",
+  hey_everyone: "SteelFury: Hey everyone! Got car questions?",
+  good_to_see_you_again: "SteelFury: Good to see you again! What do you want to know?",
+  greetings_to_you: "SteelFury: Greetings to you! Ask away about cars.",
+  hi_there_friend: "SteelFury: Hi there, friend! How can I help?",
+  whats_good: "SteelFury: What's good? Need some car advice?",
+  hey_hey: "SteelFury: Hey hey! How can I assist with your car?",
+  hello_hello: "SteelFury: Hello hello! Ready for car talk?",
+  good_day_to_you: "SteelFury: Good day to you! What car info do you need?",
+  hiya_there: "SteelFury: Hiya there! Ask me about cars anytime.",
+  howdy_partner: "SteelFury: Howdy partner! What car info can I give you?",
+  hey_yo: "SteelFury: Hey yo! What can I help you with today?",
+  hi_everyone: "SteelFury: Hi everyone! What car questions do you have?",
+  greetings_mate: "SteelFury: Greetings mate! Ask me anything about vehicles.",
+  good_morning_friend: "SteelFury: Good morning, friend! How can I assist?",
+  hello_mate: "SteelFury: Hello mate! What do you want to know about cars?",
+  hey_there_pal: "SteelFury: Hey there pal! Need car info?",
+  greetings_pal: "SteelFury: Greetings pal! How can I help?",
+  hi_there_mate: "SteelFury: Hi there mate! Ask your car questions.",
+  how_are_you_mate: "SteelFury: How are you mate? Ready to talk cars?",
+  good_evening_friend: "SteelFury: Good evening, friend! Need car advice?",
+  welcome_back_friend: "SteelFury: Welcome back, friend! How can I assist?",
+  hey_friend_what_up: "SteelFury: Hey friend, what’s up? Ask me about cars.",
+  hiya_pal: "SteelFury: Hiya pal! What car info do you need?",
+  greetings_and_welcome: "SteelFury: Greetings and welcome! Ask me anything about cars.",
+  hey_there_matey: "SteelFury: Hey there matey! What car questions do you have?",
+  hello_there_pal: "SteelFury: Hello there pal! How can I assist?",
+  good_to_see_you_pal: "SteelFury: Good to see you pal! Ready for car talk?",
+  hey_yo_pal: "SteelFury: Hey yo pal! Need some car tips?",
+  hi_friend_hello: "SteelFury: Hi friend, hello! What can I help you with?",
+  greetings_fellow_car_enthusiast: "SteelFury: Greetings fellow car enthusiast! Ask me anything.",
+  hey_there_driver: "SteelFury: Hey there driver! What do you want to know?",
+  hello_driver: "SteelFury: Hello driver! Ready to answer your questions.",
+  hi_car_lover: "SteelFury: Hi car lover! Ask me anything about cars.",
+  hey_auto_fan: "SteelFury: Hey auto fan! Need some car advice?",
+  greetings_car_fan: "SteelFury: Greetings car fan! How can I help you today?",
+  good_morning_driver: "SteelFury: Good morning driver! What can I assist with?",
+  hello_auto_enthusiast: "SteelFury: Hello auto enthusiast! Ask away.",
+  hey_car_expert: "SteelFury: Hey car expert! What’s on your mind?",
+  hi_vehicle_owner: "SteelFury: Hi vehicle owner! Need some info?",
+  hello_motorhead: "SteelFury: Hello motorhead! How can I help?",
+  greetings_auto_fanatic: "SteelFury: Greetings auto fanatic! Ask me about cars.",
+  hey_carbuff: "SteelFury: Hey carbuff! What car questions do you have?",
+  hi_cars_lover: "SteelFury: Hi cars lover! Ready to chat about your ride.",
+  hello_speed_fan: "SteelFury: Hello speed fan! What can I help with?",
+  hey_road_racer: "SteelFury: Hey road racer! Need some car tips?",
+  greetings_tuner: "SteelFury: Greetings tuner! Ask me about cars.",
+  hi_racer: "SteelFury: Hi racer! Ready to talk performance?",
+  hello_mechanic: "SteelFury: Hello mechanic! What car advice do you need?",
+  hey_gearhead: "SteelFury: Hey gearhead! Ask me anything about cars.",
+  greetings_car_enthusiast: "SteelFury: Greetings car enthusiast! How can I help?",
+  hi_auto_guy: "SteelFury: Hi auto guy! Need car info?",
+  hello_car_lover: "SteelFury: Hello car lover! Ask your questions.",
+  hey_driver: "SteelFury: Hey driver! What do you want to know?",
+  greetings_motorhead: "SteelFury: Greetings motorhead! How can I assist?",
+  hi_speed_freak: "SteelFury: Hi speed freak! Ready to talk cars?",
+  Electric_vs_petrol_cars: "SteelFury: Electric cars use battery-powered motors, produce no emissions, and are quiet and efficient. Petrol cars use internal combustion engines, emit CO2, and are more common today, but less eco-friendly.",
+  What_is_a_turbo: "SteelFury: A turbo, or turbocharger, is a device that forces more air into the engine's cylinders. This increases power and efficiency by allowing the engine to burn more fuel.",
+  How_does_ABS_work: "SteelFury: ABS (Anti-lock Braking System) prevents the wheels from locking up during braking, helping the driver maintain steering control and avoid skidding.",
+  Best_car_for_off_road: "SteelFury: Some of the best off-road cars include the Jeep Wrangler, Toyota Land Cruiser, and Land Rover Defender. These vehicles have high ground clearance and advanced 4x4 systems.",
+  What_is_a_catalytic_converter: "Ste_elFury: A catalytic converter is an emissions control device in a car’s exhaust system. It converts harmful gases like CO, NOx, and hydrocarbons into less harmful substances like CO2 and water vapor."
+    };
+
+
+
+  const suggestions = [
+    "Best_car_for_off_road",
+    "hi",
+    "How does ABS work?",
+    "Best car for off road?",
+    "What is a catalytic converter?"
+  ];
+
+  const chatBox = document.getElementById('chatBox');
+  const userInput = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+  const voiceBtn = document.getElementById('voiceBtn');
+  const modeBtn = document.getElementById('modeBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const suggestionsDiv = document.getElementById('suggestions');
+  const statusDiv = document.getElementById('status');
+
+  // Save and load chat to localStorage
+  function saveChat() {
+    const messages = [];
+    chatBox.querySelectorAll('.message').forEach(msg => {
+      messages.push({
+        text: msg.textContent,
+        type: msg.classList.contains('user') ? 'user' : 'bot'
+      });
+    });
+    localStorage.setItem('steelFuryChat', JSON.stringify(messages));
+  }
+
+  function loadChat() {
+    const saved = localStorage.getItem('steelFuryChat');
+    if (!saved) return;
+    const messages = JSON.parse(saved);
+    messages.forEach(m => addMessage(m.text, m.type));
+  }
+
+  function addMessage(text, type) {
+    if (!text) return;
+    const msg = document.createElement('div');
+    msg.className = 'message ' + type;
+    msg.textContent = text;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    saveChat();
+  }
+
+  function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text) return;
+
+    addMessage(text, 'user');
+    userInput.value = '';
+    sendBtn.disabled = true;
+    statusDiv.textContent = '';
+
+    // Create typing dots
+    const typingMsg = document.createElement('div');
+    typingMsg.className = 'message bot typing-dots';
+    typingMsg.innerHTML = '<span></span><span></span><span></span>';
+    chatBox.appendChild(typingMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    const lower = text.toLowerCase();
+    let reply = "SteelFury couldn't understand your question clearly. Please try rephrasing.";
+
+    for (const key in RESPONSES) {
+      if (lower.includes(key)) {
+        reply = RESPONSES[key];
+        break;
+      }
+    }
+
+    setTimeout(() => {
+      typingMsg.innerHTML = reply;
+      typingMsg.classList.remove('typing-dots');
+      sendBtn.disabled = false;
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }, 1100);
+  }
+
+  function renderSuggestions() {
+    suggestionsDiv.innerHTML = '';
+    suggestions.forEach(q => {
+      const btn = document.createElement('button');
+      btn.textContent = q;
+      btn.title = q;
+      btn.setAttribute('aria-label', 'Ask: ' + q);
+      btn.onclick = () => {
+        userInput.value = q;
+        sendMessage();
+      };
+      suggestionsDiv.appendChild(btn);
+    });
+  }
+
+  function toggleMode() {
+    document.body.classList.toggle('dark');
+    localStorage.setItem('darkMode', document.body.classList.contains('dark'));
+  }
+
+  function clearChat() {
+    if (confirm("Clear chat history?")) {
+      localStorage.removeItem('steelFuryChat');
+      chatBox.innerHTML = '';
+    }
+  }
+
+  // Voice input
+  let recognition;
+  if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => statusDiv.textContent = 'Listening... 🎤';
+    recognition.onend = () => statusDiv.textContent = '';
+    recognition.onerror = () => {
+      statusDiv.textContent = '';
+      alert('Voice recognition error. Please try again.');
+    };
+    recognition.onresult = event => {
+      const speechResult = event.results[0][0].transcript;
+      userInput.value = speechResult;
+      sendMessage();
+    };
+  } else {
+    voiceBtn.disabled = true;
+    voiceBtn.title = "Voice input not supported in this browser.";
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  userInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+  voiceBtn.addEventListener('click', () => recognition && recognition.start());
+  modeBtn.addEventListener('click', toggleMode);
+  clearBtn.addEventListener('click', clearChat);
+
+  if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark');
+  }
+
+  loadChat();
+  renderSuggestions();
+</script>
+</body>
+</html>
